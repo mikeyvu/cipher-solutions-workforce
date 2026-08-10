@@ -1,1 +1,24 @@
+# Local data / test fixtures
 mock-backup.json
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies / build output (frontend/ has its own too; this covers the root
+# and any future sub-project that doesn't)
+node_modules/
+dist/
+dist-ssr/
+
+# Logs
+*.log
