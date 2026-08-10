@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { AppDataContext, type AppDataContextValue } from '@/context/AppDataContext';
+import { AppDataContext, type AppDataContextValue } from '@/context/AppDataContextObject';
 
 export function useAppData(): AppDataContextValue {
   const ctx = useContext(AppDataContext);

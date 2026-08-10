@@ -1,50 +1,19 @@
-import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Client, Contractor, DocumentMeta, DocumentType, Employee, Project } from '@/types';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { Client, Contractor, DocumentMeta, Employee, Project } from '@/types';
 import { DOCUMENT_TYPES } from '@/types';
 import { getCollection, saveCollection } from '@/storage/collections';
 import { deleteAllDocumentsForEmployee, savePdf } from '@/storage/pdfStorage';
 import { migrateEmployeeDocuments } from '@/storage/migrateEmployeeDocuments';
 import { generateId } from '@/utils/id';
-
-type NewContractor = Omit<Contractor, 'id' | 'createdAt'>;
-type NewClient = Omit<Client, 'id' | 'createdAt'>;
-type NewProject = Omit<Project, 'id' | 'createdAt' | 'employeeIds'>;
-type NewEmployee = Omit<Employee, 'id' | 'createdAt' | 'documents'> & {
-  documentExpiry?: Partial<Record<DocumentType, string>>;
-};
-type EmployeeFiles = Partial<Record<DocumentType, File>>;
-
-export interface AppDataContextValue {
-  loading: boolean;
-  contractors: Contractor[];
-  employees: Employee[];
-  clients: Client[];
-  projects: Project[];
-
-  addContractor: (input: NewContractor) => Promise<void>;
-  updateContractor: (id: string, input: NewContractor) => Promise<void>;
-  deleteContractor: (id: string) => Promise<void>;
-
-  addEmployee: (input: NewEmployee, files?: EmployeeFiles) => Promise<void>;
-  updateEmployee: (id: string, input: NewEmployee, files?: EmployeeFiles) => Promise<void>;
-  deleteEmployee: (id: string) => Promise<void>;
-
-  addClient: (input: NewClient) => Promise<void>;
-  updateClient: (id: string, input: NewClient) => Promise<void>;
-  deleteClient: (id: string) => Promise<void>;
-
-  addProject: (input: NewProject) => Promise<void>;
-  updateProject: (id: string, input: NewProject) => Promise<void>;
-  deleteProject: (id: string) => Promise<void>;
-
-  assignEmployeeToProject: (projectId: string, employeeId: string) => Promise<void>;
-  unassignEmployeeFromProject: (projectId: string, employeeId: string) => Promise<void>;
-  setProjectEmployees: (projectId: string, employeeIds: string[]) => Promise<void>;
-
-  reloadAll: () => Promise<void>;
-}
-
-export const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
+import {
+  AppDataContext,
+  type AppDataContextValue,
+  type EmployeeFiles,
+  type NewClient,
+  type NewContractor,
+  type NewEmployee,
+  type NewProject,
+} from './AppDataContextObject';
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
