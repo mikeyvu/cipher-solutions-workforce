@@ -42,9 +42,14 @@ export async function exportProjectExcel(
     cell.font = { bold: true }
   })
 
+  const documentColumnKeys = new Set<string>(DOCUMENT_TYPES.map(({ key }) => key))
+
   worksheet.eachRow((row) => {
-    row.eachCell({ includeEmpty: true }, (cell) => {
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.border = THIN_BORDER
+      if (documentColumnKeys.has(columns[colNumber - 1].key)) {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+      }
     })
   })
 
