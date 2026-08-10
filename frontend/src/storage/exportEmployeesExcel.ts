@@ -1,9 +1,8 @@
 import { downloadStyledExcel } from '@/lib/excelExport'
-import { DOCUMENT_TYPES, type Contractor, type Employee, type Project } from '@/types'
+import { DOCUMENT_TYPES, type Contractor, type Employee } from '@/types'
 
-export async function exportProjectExcel(
-  project: Project,
-  assignedEmployees: Employee[],
+export async function exportEmployeesExcel(
+  employees: Employee[],
   contractors: Contractor[],
   visibleColumns: Set<string>,
 ) {
@@ -17,7 +16,7 @@ export async function exportProjectExcel(
     ...DOCUMENT_TYPES.map(({ key, label }) => ({ header: label, key })),
   ].filter((c) => c.key === 'fullName' || visibleColumns.has(c.key))
 
-  const rows = assignedEmployees.map((e) => ({
+  const rows = employees.map((e) => ({
     fullName: `${e.firstName} ${e.lastName}`,
     contractor: contractorsById.get(e.contractorId)?.name ?? '',
     visaType: e.visaType,
@@ -29,7 +28,7 @@ export async function exportProjectExcel(
 
   await downloadStyledExcel(
     'Employees',
-    `${project.name.replace(/[^\w-]+/g, '_')}-employees.xlsx`,
+    `employees-${new Date().toISOString().slice(0, 10)}.xlsx`,
     columns,
     rows,
     documentColumnKeys,
