@@ -13,6 +13,7 @@ export async function exportProjectExcel(
   project: Project,
   assignedEmployees: Employee[],
   contractors: Contractor[],
+  visibleColumns: Set<string>,
 ) {
   const contractorsById = new Map(contractors.map((c) => [c.id, c]))
 
@@ -22,7 +23,7 @@ export async function exportProjectExcel(
     { header: 'Visa Type', key: 'visaType' },
     { header: 'Working Right', key: 'workingRight' },
     ...DOCUMENT_TYPES.map(({ key, label }) => ({ header: label, key })),
-  ]
+  ].filter((c) => c.key === 'fullName' || visibleColumns.has(c.key))
 
   const rows = assignedEmployees.map((e) => ({
     fullName: `${e.firstName} ${e.lastName}`,
