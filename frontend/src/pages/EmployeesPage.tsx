@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, TrashIcon, ListFilterIcon, XIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, TrashIcon, ListFilterIcon, SearchIcon, XIcon } from 'lucide-react'
 import {
   Pagination,
   PaginationContent,
@@ -11,6 +11,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -76,6 +77,7 @@ export function EmployeesPage() {
   const [contractorFilter, setContractorFilter] = useState('all')
   const [visaTypeFilter, setVisaTypeFilter] = useState('all')
   const [workingRightFilter, setWorkingRightFilter] = useState('all')
+  const [search, setSearch] = useState('')
 
   const visaTypeOptions = useMemo(
     () =>
@@ -109,16 +111,18 @@ export function EmployeesPage() {
     (visaTypeFilter !== 'all' ? 1 : 0) +
     (workingRightFilter !== 'all' ? 1 : 0)
 
-  const filteredEmployees = useMemo(
-    () =>
-      employees.filter((employee) => {
-        if (contractorFilter !== 'all' && employee.contractorId !== contractorFilter) return false
-        if (visaTypeFilter !== 'all' && employee.visaType !== visaTypeFilter) return false
-        if (workingRightFilter !== 'all' && employee.workingRight !== workingRightFilter) return false
-        return matchesDocumentFilters(employee, columnFilters)
-      }),
-    [employees, columnFilters, contractorFilter, visaTypeFilter, workingRightFilter],
-  )
+  const filteredEmployees = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return employees.filter((employee) => {
+      if (term && !`${employee.firstName} ${employee.lastName}`.toLowerCase().includes(term)) {
+        return false
+      }
+      if (contractorFilter !== 'all' && employee.contractorId !== contractorFilter) return false
+      if (visaTypeFilter !== 'all' && employee.visaType !== visaTypeFilter) return false
+      if (workingRightFilter !== 'all' && employee.workingRight !== workingRightFilter) return false
+      return matchesDocumentFilters(employee, columnFilters)
+    })
+  }, [employees, columnFilters, contractorFilter, visaTypeFilter, workingRightFilter, search])
 
   const [currentPage, setCurrentPage] = useState(1)
   const pageCount = Math.max(1, Math.ceil(filteredEmployees.length / PAGE_SIZE))
@@ -129,7 +133,7 @@ export function EmployeesPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [columnFilters, contractorFilter, visaTypeFilter, workingRightFilter])
+  }, [columnFilters, contractorFilter, visaTypeFilter, workingRightFilter, search])
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, pageCount))
@@ -144,6 +148,7 @@ export function EmployeesPage() {
     setContractorFilter('all')
     setVisaTypeFilter('all')
     setWorkingRightFilter('all')
+    setSearch('')
   }
 
   function contractorName(contractorId: string) {
@@ -218,83 +223,109 @@ export function EmployeesPage() {
         </p>
       )}
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-muted/30 p-3">
-        <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-          <ListFilterIcon className="size-4" /> Filters
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
+        <div className="relative">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search employees by name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-64 pl-8"
+          />
         </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Contractor</span>
-          <Select items={contractorFilterItems} value={contractorFilter} onValueChange={(value) => setContractorFilter(value as string)}>
-            <SelectTrigger size="sm" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(contractorFilterItems).map((value) => (
-                <SelectItem key={value} value={value}>
-                  {contractorFilterItems[value]}
-                </SelectItem>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+            <ListFilterIcon />
+            Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[560px] max-w-[90vw] p-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Contractor</span>
+                <Select
+                  items={contractorFilterItems}
+                  value={contractorFilter}
+                  onValueChange={(value) => setContractorFilter(value as string)}
+                >
+                  <SelectTrigger size="sm" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(contractorFilterItems).map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {contractorFilterItems[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Visa type</span>
+                <Select
+                  items={visaTypeFilterItems}
+                  value={visaTypeFilter}
+                  onValueChange={(value) => setVisaTypeFilter(value as string)}
+                >
+                  <SelectTrigger size="sm" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(visaTypeFilterItems).map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {visaTypeFilterItems[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Working right</span>
+                <Select
+                  items={workingRightFilterItems}
+                  value={workingRightFilter}
+                  onValueChange={(value) => setWorkingRightFilter(value as string)}
+                >
+                  <SelectTrigger size="sm" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(workingRightFilterItems).map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {workingRightFilterItems[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {DOCUMENT_TYPES.map(({ key, label }) => (
+                <div key={key} className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">{label}</span>
+                  <Select
+                    items={DOC_FILTER_OPTIONS}
+                    value={columnFilters[key]}
+                    onValueChange={(value) => setColumnFilter(key, value as DocFilterValue)}
+                  >
+                    <SelectTrigger size="sm" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(DOC_FILTER_OPTIONS) as DocFilterValue[]).map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {DOC_FILTER_OPTIONS[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Visa type</span>
-          <Select items={visaTypeFilterItems} value={visaTypeFilter} onValueChange={(value) => setVisaTypeFilter(value as string)}>
-            <SelectTrigger size="sm" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(visaTypeFilterItems).map((value) => (
-                <SelectItem key={value} value={value}>
-                  {visaTypeFilterItems[value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Working right</span>
-          <Select
-            items={workingRightFilterItems}
-            value={workingRightFilter}
-            onValueChange={(value) => setWorkingRightFilter(value as string)}
-          >
-            <SelectTrigger size="sm" className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(workingRightFilterItems).map((value) => (
-                <SelectItem key={value} value={value}>
-                  {workingRightFilterItems[value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {DOCUMENT_TYPES.map(({ key, label }) => (
-          <div key={key} className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{label}</span>
-            <Select
-              items={DOC_FILTER_OPTIONS}
-              value={columnFilters[key]}
-              onValueChange={(value) => setColumnFilter(key, value as DocFilterValue)}
-            >
-              <SelectTrigger size="sm" className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(DOC_FILTER_OPTIONS) as DocFilterValue[]).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {DOC_FILTER_OPTIONS[value]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ))}
-        {activeFilterCount > 0 && (
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {(activeFilterCount > 0 || search.trim() !== '') && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <XIcon /> Clear all ({activeFilterCount})
+            <XIcon /> Clear all
           </Button>
         )}
       </div>
