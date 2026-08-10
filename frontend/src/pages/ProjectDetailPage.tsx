@@ -51,13 +51,13 @@ export function ProjectDetailPage() {
     toast.success('Employee removed')
   }
 
-  function handleExport() {
+  async function handleExport() {
     if (!project) return
     if (assignedEmployees.length === 0) {
       toast.error('Assign at least one employee before exporting')
       return
     }
-    exportProjectExcel(project, assignedEmployees, contractors)
+    await exportProjectExcel(project, assignedEmployees, contractors)
     toast.success('Excel file downloaded')
   }
 
