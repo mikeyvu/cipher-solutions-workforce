@@ -38,14 +38,7 @@ export function AssignEmployeesForm({
   onCancel: () => void
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set(initiallyAssignedIds))
-  const [expandedContractorIds, setExpandedContractorIds] = useState<Set<string>>(() => {
-    const assigned = new Set(initiallyAssignedIds)
-    return new Set(
-      contractors
-        .filter((c) => employees.some((e) => e.contractorId === c.id && assigned.has(e.id)))
-        .map((c) => c.id),
-    )
-  })
+  const [expandedContractorIds, setExpandedContractorIds] = useState<Set<string>>(() => new Set())
   const [search, setSearch] = useState('')
   const [documentFilters, setDocumentFilters] = useState<Record<DocumentType, DocFilterValue>>(
     emptyDocumentFilters(),
@@ -123,16 +116,17 @@ export function AssignEmployeesForm({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-lg border border-border px-3 pr-1">
+      <div className="flex-1 overflow-y-auto pr-1">
         <Accordion
           multiple
+          className="gap-2"
           value={Array.from(expandedContractorIds)}
           onValueChange={(value) => setExpandedContractorIds(new Set(value as string[]))}
         >
           {contractors.map((c) => {
             const list = employeesByContractor.get(c.id) ?? []
             return (
-              <AccordionItem key={c.id} value={c.id}>
+              <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3">
                 <AccordionTrigger>
                   {c.name}
                   <span className="ml-1.5 font-normal text-muted-foreground">({list.length})</span>
