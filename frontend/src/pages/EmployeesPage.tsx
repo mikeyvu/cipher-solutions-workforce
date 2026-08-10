@@ -267,6 +267,7 @@ export function EmployeesPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[560px] max-w-[90vw] p-3">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {visibleColumns.has('contractor') && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Contractor</span>
                 <Select
@@ -286,6 +287,8 @@ export function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
+              {visibleColumns.has('visaType') && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Visa type</span>
                 <Select
@@ -305,6 +308,8 @@ export function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
+              {visibleColumns.has('workingRight') && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Working right</span>
                 <Select
@@ -324,7 +329,9 @@ export function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {DOCUMENT_TYPES.map(({ key, label }) => (
+              )}
+              {DOCUMENT_TYPES.map(({ key, label }) =>
+                !visibleColumns.has(key) ? null : (
                 <div key={key} className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">{label}</span>
                   <Select
@@ -344,7 +351,8 @@ export function EmployeesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              ))}
+                ),
+              )}
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
