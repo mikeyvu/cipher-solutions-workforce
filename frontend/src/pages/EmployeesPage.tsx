@@ -52,10 +52,18 @@ export function EmployeesPage() {
   )
   const [contractorFilter, setContractorFilter] = useState('all')
   const [visaTypeFilter, setVisaTypeFilter] = useState('all')
+  const [workingRightFilter, setWorkingRightFilter] = useState('all')
 
   const visaTypeOptions = useMemo(
     () =>
       Array.from(new Set(employees.map((e) => e.visaType).filter((v): v is string => Boolean(v)))).sort(),
+    [employees],
+  )
+  const workingRightOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(employees.map((e) => e.workingRight).filter((v): v is string => Boolean(v))),
+      ).sort(),
     [employees],
   )
 
@@ -67,20 +75,26 @@ export function EmployeesPage() {
     () => ({ all: 'All', ...Object.fromEntries(visaTypeOptions.map((v) => [v, v])) }),
     [visaTypeOptions],
   )
+  const workingRightFilterItems = useMemo<Record<string, string>>(
+    () => ({ all: 'All', ...Object.fromEntries(workingRightOptions.map((v) => [v, v])) }),
+    [workingRightOptions],
+  )
 
   const activeFilterCount =
     DOCUMENT_TYPES.filter(({ key }) => columnFilters[key] !== 'all').length +
     (contractorFilter !== 'all' ? 1 : 0) +
-    (visaTypeFilter !== 'all' ? 1 : 0)
+    (visaTypeFilter !== 'all' ? 1 : 0) +
+    (workingRightFilter !== 'all' ? 1 : 0)
 
   const filteredEmployees = useMemo(
     () =>
       employees.filter((employee) => {
         if (contractorFilter !== 'all' && employee.contractorId !== contractorFilter) return false
         if (visaTypeFilter !== 'all' && employee.visaType !== visaTypeFilter) return false
+        if (workingRightFilter !== 'all' && employee.workingRight !== workingRightFilter) return false
         return matchesDocumentFilters(employee, columnFilters)
       }),
-    [employees, columnFilters, contractorFilter, visaTypeFilter],
+    [employees, columnFilters, contractorFilter, visaTypeFilter, workingRightFilter],
   )
 
   function setColumnFilter(key: DocumentType, value: DocFilterValue) {
@@ -91,6 +105,7 @@ export function EmployeesPage() {
     setColumnFilters(emptyDocumentFilters())
     setContractorFilter('all')
     setVisaTypeFilter('all')
+    setWorkingRightFilter('all')
   }
 
   function contractorName(contractorId: string) {
@@ -194,6 +209,25 @@ export function EmployeesPage() {
               {Object.keys(visaTypeFilterItems).map((value) => (
                 <SelectItem key={value} value={value}>
                   {visaTypeFilterItems[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Working right</span>
+          <Select
+            items={workingRightFilterItems}
+            value={workingRightFilter}
+            onValueChange={(value) => setWorkingRightFilter(value as string)}
+          >
+            <SelectTrigger size="sm" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(workingRightFilterItems).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {workingRightFilterItems[value]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -308,7 +342,36 @@ export function EmployeesPage() {
                       </DropdownMenu>
                     </div>
                   </TableHead>
-                  <TableHead>Working right</TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <span>Working right</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className={cn(workingRightFilter !== 'all' && 'text-primary')}
+                            />
+                          }
+                        >
+                          <ListFilterIcon />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuRadioGroup
+                            value={workingRightFilter}
+                            onValueChange={(value) => setWorkingRightFilter(value as string)}
+                          >
+                            {Object.keys(workingRightFilterItems).map((value) => (
+                              <DropdownMenuRadioItem key={value} value={value}>
+                                {workingRightFilterItems[value]}
+                              </DropdownMenuRadioItem>
+                            ))}
+                          </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableHead>
                   {DOCUMENT_TYPES.map(({ key, label }) => (
                     <TableHead key={key}>
                       <div className="flex items-center gap-1">
