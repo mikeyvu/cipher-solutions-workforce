@@ -1,6 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { PlusIcon, PencilIcon, TrashIcon, ListFilterIcon, XIcon } from 'lucide-react'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,6 +51,20 @@ import {
   matchesDocumentFilters,
   type DocFilterValue,
 } from '@/lib/documentFilters'
+
+const PAGE_SIZE = 20
+
+function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | 'ellipsis')[] = [1]
+  if (current > 3) pages.push('ellipsis')
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
+    pages.push(p)
+  }
+  if (current < total - 2) pages.push('ellipsis')
+  pages.push(total)
+  return pages
+}
 
 export function EmployeesPage() {
   const { employees, contractors, addEmployee, updateEmployee, deleteEmployee } = useAppData()
@@ -96,6 +119,21 @@ export function EmployeesPage() {
       }),
     [employees, columnFilters, contractorFilter, visaTypeFilter, workingRightFilter],
   )
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageCount = Math.max(1, Math.ceil(filteredEmployees.length / PAGE_SIZE))
+  const pagedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [columnFilters, contractorFilter, visaTypeFilter, workingRightFilter])
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, pageCount))
+  }, [pageCount])
 
   function setColumnFilter(key: DocumentType, value: DocFilterValue) {
     setColumnFilters((prev) => ({ ...prev, [key]: value }))
@@ -412,7 +450,7 @@ export function EmployeesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEmployees.map((employee) => (
+                {pagedEmployees.map((employee) => (
                   <TableRow key={employee.id}>
                     <TableCell className="font-medium">
                       {employee.firstName} {employee.lastName}
@@ -483,6 +521,54 @@ export function EmployeesPage() {
                 ))}
               </TableBody>
             </Table>
+          )}
+          {pageCount > 1 && (
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    aria-disabled={currentPage === 1}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : undefined}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setCurrentPage((page) => Math.max(1, page - 1))
+                    }}
+                  />
+                </PaginationItem>
+                {getPageNumbers(currentPage, pageCount).map((page, i) =>
+                  page === 'ellipsis' ? (
+                    <PaginationItem key={`ellipsis-${i}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        href="#"
+                        isActive={page === currentPage}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          setCurrentPage(page)
+                        }}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ),
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    aria-disabled={currentPage === pageCount}
+                    className={currentPage === pageCount ? 'pointer-events-none opacity-50' : undefined}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setCurrentPage((page) => Math.min(pageCount, page + 1))
+                    }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           )}
         </CardContent>
       </Card>
