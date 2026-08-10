@@ -150,10 +150,21 @@ export function EmployeesPage() {
   function toggleColumn(key: string) {
     setVisibleColumns((prev) => {
       const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      if (next.has(key)) {
+        next.delete(key)
+        clearColumnFilter(key)
+      } else {
+        next.add(key)
+      }
       return next
     })
+  }
+
+  function clearColumnFilter(key: string) {
+    if (key === 'contractor') setContractorFilter('all')
+    else if (key === 'visaType') setVisaTypeFilter('all')
+    else if (key === 'workingRight') setWorkingRightFilter('all')
+    else setColumnFilters((prev) => ({ ...prev, [key]: 'all' }))
   }
 
   function contractorName(contractorId: string) {
