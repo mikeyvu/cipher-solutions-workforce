@@ -50,12 +50,37 @@ export function EmployeesPage() {
   const [columnFilters, setColumnFilters] = useState<Record<DocumentType, DocFilterValue>>(
     emptyDocumentFilters(),
   )
+  const [contractorFilter, setContractorFilter] = useState('all')
+  const [visaTypeFilter, setVisaTypeFilter] = useState('all')
 
-  const activeFilterCount = DOCUMENT_TYPES.filter(({ key }) => columnFilters[key] !== 'all').length
+  const visaTypeOptions = useMemo(
+    () =>
+      Array.from(new Set(employees.map((e) => e.visaType).filter((v): v is string => Boolean(v)))).sort(),
+    [employees],
+  )
+
+  const contractorFilterItems = useMemo<Record<string, string>>(
+    () => ({ all: 'All', ...Object.fromEntries(contractors.map((c) => [c.id, c.name])) }),
+    [contractors],
+  )
+  const visaTypeFilterItems = useMemo<Record<string, string>>(
+    () => ({ all: 'All', ...Object.fromEntries(visaTypeOptions.map((v) => [v, v])) }),
+    [visaTypeOptions],
+  )
+
+  const activeFilterCount =
+    DOCUMENT_TYPES.filter(({ key }) => columnFilters[key] !== 'all').length +
+    (contractorFilter !== 'all' ? 1 : 0) +
+    (visaTypeFilter !== 'all' ? 1 : 0)
 
   const filteredEmployees = useMemo(
-    () => employees.filter((employee) => matchesDocumentFilters(employee, columnFilters)),
-    [employees, columnFilters],
+    () =>
+      employees.filter((employee) => {
+        if (contractorFilter !== 'all' && employee.contractorId !== contractorFilter) return false
+        if (visaTypeFilter !== 'all' && employee.visaType !== visaTypeFilter) return false
+        return matchesDocumentFilters(employee, columnFilters)
+      }),
+    [employees, columnFilters, contractorFilter, visaTypeFilter],
   )
 
   function setColumnFilter(key: DocumentType, value: DocFilterValue) {
@@ -64,6 +89,8 @@ export function EmployeesPage() {
 
   function clearFilters() {
     setColumnFilters(emptyDocumentFilters())
+    setContractorFilter('all')
+    setVisaTypeFilter('all')
   }
 
   function contractorName(contractorId: string) {
@@ -142,6 +169,36 @@ export function EmployeesPage() {
         <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
           <ListFilterIcon className="size-4" /> Filters
         </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Contractor</span>
+          <Select items={contractorFilterItems} value={contractorFilter} onValueChange={(value) => setContractorFilter(value as string)}>
+            <SelectTrigger size="sm" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(contractorFilterItems).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {contractorFilterItems[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-muted-foreground">Visa type</span>
+          <Select items={visaTypeFilterItems} value={visaTypeFilter} onValueChange={(value) => setVisaTypeFilter(value as string)}>
+            <SelectTrigger size="sm" className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(visaTypeFilterItems).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {visaTypeFilterItems[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         {DOCUMENT_TYPES.map(({ key, label }) => (
           <div key={key} className="flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">{label}</span>
@@ -191,8 +248,66 @@ export function EmployeesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Contractor</TableHead>
-                  <TableHead>Visa type</TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <span>Contractor</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className={cn(contractorFilter !== 'all' && 'text-primary')}
+                            />
+                          }
+                        >
+                          <ListFilterIcon />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuRadioGroup
+                            value={contractorFilter}
+                            onValueChange={(value) => setContractorFilter(value as string)}
+                          >
+                            {Object.keys(contractorFilterItems).map((value) => (
+                              <DropdownMenuRadioItem key={value} value={value}>
+                                {contractorFilterItems[value]}
+                              </DropdownMenuRadioItem>
+                            ))}
+                          </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableHead>
+                  <TableHead>
+                    <div className="flex items-center gap-1">
+                      <span>Visa type</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className={cn(visaTypeFilter !== 'all' && 'text-primary')}
+                            />
+                          }
+                        >
+                          <ListFilterIcon />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuRadioGroup
+                            value={visaTypeFilter}
+                            onValueChange={(value) => setVisaTypeFilter(value as string)}
+                          >
+                            {Object.keys(visaTypeFilterItems).map((value) => (
+                              <DropdownMenuRadioItem key={value} value={value}>
+                                {visaTypeFilterItems[value]}
+                              </DropdownMenuRadioItem>
+                            ))}
+                          </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableHead>
                   <TableHead>Working right</TableHead>
                   {DOCUMENT_TYPES.map(({ key, label }) => (
                     <TableHead key={key}>
