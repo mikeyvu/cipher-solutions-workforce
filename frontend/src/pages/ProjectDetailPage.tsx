@@ -1,15 +1,32 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeftIcon, DownloadIcon, UsersIcon, XIcon } from 'lucide-react'
+import { ArrowLeftIcon, Columns3Icon, DownloadIcon, UsersIcon, XIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AssignEmployeesForm } from '@/components/forms/AssignEmployeesForm'
 import { useAppData } from '@/hooks/useAppData'
 import { exportProjectExcel } from '@/storage/exportProjectExcel'
+import { getPdf } from '@/storage/pdfStorage'
+import { DOCUMENT_TYPES, type DocumentType, type Employee } from '@/types'
+
+const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
+  { key: 'contractor', label: 'Contractor' },
+  { key: 'visaType', label: 'Visa type' },
+  { key: 'workingRight', label: 'Working right' },
+  ...DOCUMENT_TYPES.map(({ key, label }) => ({ key, label })),
+]
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -17,6 +34,9 @@ export function ProjectDetailPage() {
   const { projects, clients, employees, contractors, unassignEmployeeFromProject, setProjectEmployees } =
     useAppData()
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    () => new Set(TOGGLEABLE_COLUMNS.map((c) => c.key)),
+  )
 
   const project = projects.find((p) => p.id === projectId)
 
@@ -38,6 +58,15 @@ export function ProjectDetailPage() {
     return contractors.find((c) => c.id === contractorId)?.name ?? '—'
   }
 
+  function toggleColumn(key: string) {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   async function handleAssignSubmit(employeeIds: string[]) {
     if (!project) return
     await setProjectEmployees(project.id, employeeIds)
@@ -51,13 +80,24 @@ export function ProjectDetailPage() {
     toast.success('Employee removed')
   }
 
+  async function handleViewDocument(employee: Employee, docType: DocumentType) {
+    const file = await getPdf(employee.id, docType)
+    if (!file) {
+      toast.error('Document not found')
+      return
+    }
+    const url = URL.createObjectURL(file)
+    window.open(url, '_blank')
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+
   async function handleExport() {
     if (!project) return
     if (assignedEmployees.length === 0) {
       toast.error('Assign at least one employee before exporting')
       return
     }
-    await exportProjectExcel(project, assignedEmployees, contractors)
+    await exportProjectExcel(project, assignedEmployees, contractors, visibleColumns)
     toast.success('Excel file downloaded')
   }
 
@@ -98,6 +138,25 @@ export function ProjectDetailPage() {
               />
             </DialogContent>
           </Dialog>
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" />}>
+              <Columns3Icon /> Toggle columns
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Columns</DropdownMenuLabel>
+                {TOGGLEABLE_COLUMNS.map(({ key, label }) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={visibleColumns.has(key)}
+                    onCheckedChange={() => toggleColumn(key)}
+                  >
+                    {label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={handleExport} variant="outline">
             <DownloadIcon /> Export to Excel
           </Button>
@@ -128,9 +187,13 @@ export function ProjectDetailPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Contractor</TableHead>
-                  <TableHead>Visa type</TableHead>
-                  <TableHead>Working right</TableHead>
+                  {visibleColumns.has('contractor') && <TableHead>Contractor</TableHead>}
+                  {visibleColumns.has('visaType') && <TableHead>Visa type</TableHead>}
+                  {visibleColumns.has('workingRight') && <TableHead>Working right</TableHead>}
+                  {DOCUMENT_TYPES.map(
+                    ({ key, label }) =>
+                      visibleColumns.has(key) && <TableHead key={key}>{label}</TableHead>,
+                  )}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -140,15 +203,43 @@ export function ProjectDetailPage() {
                     <TableCell className="font-medium">
                       {employee.firstName} {employee.lastName}
                     </TableCell>
-                    <TableCell>{contractorName(employee.contractorId)}</TableCell>
-                    <TableCell>{employee.visaType || '—'}</TableCell>
-                    <TableCell>
-                      {employee.workingRight ? (
-                        <Badge variant="secondary">{employee.workingRight}</Badge>
-                      ) : (
-                        '—'
-                      )}
-                    </TableCell>
+                    {visibleColumns.has('contractor') && (
+                      <TableCell>{contractorName(employee.contractorId)}</TableCell>
+                    )}
+                    {visibleColumns.has('visaType') && (
+                      <TableCell>{employee.visaType || '—'}</TableCell>
+                    )}
+                    {visibleColumns.has('workingRight') && (
+                      <TableCell>
+                        {employee.workingRight ? (
+                          <Badge variant="secondary">{employee.workingRight}</Badge>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                    )}
+                    {DOCUMENT_TYPES.map(({ key }) => {
+                      if (!visibleColumns.has(key)) return null
+                      const doc = employee.documents[key]
+                      return (
+                        <TableCell key={key}>
+                          <div className="flex flex-col gap-0.5">
+                            <Badge
+                              variant={doc ? 'success' : 'destructive'}
+                              className={doc ? 'cursor-pointer' : undefined}
+                              onClick={doc ? () => handleViewDocument(employee, key) : undefined}
+                            >
+                              {doc ? 'Have' : 'Not have'}
+                            </Badge>
+                            {doc?.expiryDate && (
+                              <span className="text-[0.7rem] text-muted-foreground">
+                                Expires {doc.expiryDate}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                      )
+                    })}
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
