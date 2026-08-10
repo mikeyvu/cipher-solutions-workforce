@@ -19,14 +19,8 @@ import { AssignEmployeesForm } from '@/components/forms/AssignEmployeesForm'
 import { useAppData } from '@/hooks/useAppData'
 import { exportProjectExcel } from '@/storage/exportProjectExcel'
 import { getPdf } from '@/storage/pdfStorage'
+import { TOGGLEABLE_EMPLOYEE_COLUMNS } from '@/lib/employeeColumns'
 import { DOCUMENT_TYPES, type DocumentType, type Employee } from '@/types'
-
-const TOGGLEABLE_COLUMNS: { key: string; label: string }[] = [
-  { key: 'contractor', label: 'Contractor' },
-  { key: 'visaType', label: 'Visa type' },
-  { key: 'workingRight', label: 'Working right' },
-  ...DOCUMENT_TYPES.map(({ key, label }) => ({ key, label })),
-]
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -35,7 +29,7 @@ export function ProjectDetailPage() {
     useAppData()
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    () => new Set(TOGGLEABLE_COLUMNS.map((c) => c.key)),
+    () => new Set(TOGGLEABLE_EMPLOYEE_COLUMNS.map((c) => c.key)),
   )
 
   const project = projects.find((p) => p.id === projectId)
@@ -145,7 +139,7 @@ export function ProjectDetailPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuGroup>
                 <DropdownMenuLabel>Columns</DropdownMenuLabel>
-                {TOGGLEABLE_COLUMNS.map(({ key, label }) => (
+                {TOGGLEABLE_EMPLOYEE_COLUMNS.map(({ key, label }) => (
                   <DropdownMenuCheckboxItem
                     key={key}
                     checked={visibleColumns.has(key)}

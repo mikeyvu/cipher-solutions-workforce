@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, TrashIcon, ListFilterIcon, SearchIcon, XIcon } from 'lucide-react'
+import { PlusIcon, PencilIcon, TrashIcon, Columns3Icon, ListFilterIcon, SearchIcon, XIcon } from 'lucide-react'
 import {
   Pagination,
   PaginationContent,
@@ -28,7 +28,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -53,6 +56,7 @@ import {
   type DocFilterValue,
 } from '@/lib/documentFilters'
 import { getPageNumbers } from '@/lib/pagination'
+import { TOGGLEABLE_EMPLOYEE_COLUMNS } from '@/lib/employeeColumns'
 
 const PAGE_SIZE = 20
 
@@ -67,6 +71,9 @@ export function EmployeesPage() {
   const [visaTypeFilter, setVisaTypeFilter] = useState('all')
   const [workingRightFilter, setWorkingRightFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    () => new Set(TOGGLEABLE_EMPLOYEE_COLUMNS.map((c) => c.key)),
+  )
 
   const visaTypeOptions = useMemo(
     () =>
@@ -140,6 +147,26 @@ export function EmployeesPage() {
     setSearch('')
   }
 
+  function toggleColumn(key: string) {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+        clearColumnFilter(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  function clearColumnFilter(key: string) {
+    if (key === 'contractor') setContractorFilter('all')
+    else if (key === 'visaType') setVisaTypeFilter('all')
+    else if (key === 'workingRight') setWorkingRightFilter('all')
+    else setColumnFilters((prev) => ({ ...prev, [key]: 'all' }))
+  }
+
   function contractorName(contractorId: string) {
     return contractors.find((c) => c.id === contractorId)?.name ?? '—'
   }
@@ -188,22 +215,43 @@ export function EmployeesPage() {
           <h1 className="font-heading text-xl font-medium text-foreground">Employees</h1>
           <p className="text-sm text-muted-foreground">All employees across sub-contractors.</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <Button onClick={openCreate} disabled={contractors.length === 0}>
-            <PlusIcon /> Add employee
-          </Button>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{editing ? 'Edit employee' : 'Add employee'}</DialogTitle>
-            </DialogHeader>
-            <EmployeeForm
-              initial={editing}
-              contractors={contractors}
-              onSubmit={handleSubmit}
-              onCancel={() => setDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" />}>
+              <Columns3Icon /> Toggle columns
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Columns</DropdownMenuLabel>
+                {TOGGLEABLE_EMPLOYEE_COLUMNS.map(({ key, label }) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={visibleColumns.has(key)}
+                    onCheckedChange={() => toggleColumn(key)}
+                  >
+                    {label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Button onClick={openCreate} disabled={contractors.length === 0}>
+              <PlusIcon /> Add employee
+            </Button>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{editing ? 'Edit employee' : 'Add employee'}</DialogTitle>
+              </DialogHeader>
+              <EmployeeForm
+                initial={editing}
+                contractors={contractors}
+                onSubmit={handleSubmit}
+                onCancel={() => setDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {contractors.length === 0 && (
@@ -230,6 +278,7 @@ export function EmployeesPage() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[560px] max-w-[90vw] p-3">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {visibleColumns.has('contractor') && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Contractor</span>
                 <Select
@@ -249,6 +298,8 @@ export function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
+              {visibleColumns.has('visaType') && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Visa type</span>
                 <Select
@@ -268,6 +319,8 @@ export function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
+              {visibleColumns.has('workingRight') && (
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Working right</span>
                 <Select
@@ -287,7 +340,9 @@ export function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {DOCUMENT_TYPES.map(({ key, label }) => (
+              )}
+              {DOCUMENT_TYPES.map(({ key, label }) =>
+                !visibleColumns.has(key) ? null : (
                 <div key={key} className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">{label}</span>
                   <Select
@@ -307,7 +362,8 @@ export function EmployeesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              ))}
+                ),
+              )}
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -340,6 +396,7 @@ export function EmployeesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  {visibleColumns.has('contractor') && (
                   <TableHead>
                     <div className="flex items-center gap-1">
                       <span>Contractor</span>
@@ -370,6 +427,8 @@ export function EmployeesPage() {
                       </DropdownMenu>
                     </div>
                   </TableHead>
+                  )}
+                  {visibleColumns.has('visaType') && (
                   <TableHead>
                     <div className="flex items-center gap-1">
                       <span>Visa type</span>
@@ -400,6 +459,8 @@ export function EmployeesPage() {
                       </DropdownMenu>
                     </div>
                   </TableHead>
+                  )}
+                  {visibleColumns.has('workingRight') && (
                   <TableHead>
                     <div className="flex items-center gap-1">
                       <span>Working right</span>
@@ -430,7 +491,9 @@ export function EmployeesPage() {
                       </DropdownMenu>
                     </div>
                   </TableHead>
-                  {DOCUMENT_TYPES.map(({ key, label }) => (
+                  )}
+                  {DOCUMENT_TYPES.map(({ key, label }) =>
+                    !visibleColumns.has(key) ? null : (
                     <TableHead key={key}>
                       <div className="flex items-center gap-1">
                         <span>{label}</span>
@@ -475,16 +538,23 @@ export function EmployeesPage() {
                     <TableCell className="font-medium">
                       {employee.firstName} {employee.lastName}
                     </TableCell>
-                    <TableCell>{contractorName(employee.contractorId)}</TableCell>
-                    <TableCell>{employee.visaType || '—'}</TableCell>
-                    <TableCell>
-                      {employee.workingRight ? (
-                        <Badge variant="secondary">{employee.workingRight}</Badge>
-                      ) : (
-                        '—'
-                      )}
-                    </TableCell>
+                    {visibleColumns.has('contractor') && (
+                      <TableCell>{contractorName(employee.contractorId)}</TableCell>
+                    )}
+                    {visibleColumns.has('visaType') && (
+                      <TableCell>{employee.visaType || '—'}</TableCell>
+                    )}
+                    {visibleColumns.has('workingRight') && (
+                      <TableCell>
+                        {employee.workingRight ? (
+                          <Badge variant="secondary">{employee.workingRight}</Badge>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                    )}
                     {DOCUMENT_TYPES.map(({ key }) => {
+                      if (!visibleColumns.has(key)) return null
                       const doc = employee.documents[key]
                       return (
                         <TableCell key={key}>
