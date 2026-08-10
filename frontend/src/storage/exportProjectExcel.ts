@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { Contractor, Employee, Project } from '@/types'
+import { DOCUMENT_TYPES, type Contractor, type Employee, type Project } from '@/types'
 
 export function exportProjectExcel(
   project: Project,
@@ -13,6 +13,9 @@ export function exportProjectExcel(
     'Sub-Contractor': contractorsById.get(e.contractorId)?.name ?? '',
     'Visa Type': e.visaType,
     'Working Right': e.workingRight,
+    ...Object.fromEntries(
+      DOCUMENT_TYPES.map(({ key, label }) => [label, e.documents[key] ? '✓' : '']),
+    ),
   }))
 
   const worksheet = XLSX.utils.json_to_sheet(rows)
