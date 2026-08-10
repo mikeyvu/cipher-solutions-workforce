@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -142,16 +143,18 @@ export function ProjectDetailPage() {
               <Columns3Icon /> Toggle columns
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Columns</DropdownMenuLabel>
-              {TOGGLEABLE_COLUMNS.map(({ key, label }) => (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={visibleColumns.has(key)}
-                  onCheckedChange={() => toggleColumn(key)}
-                >
-                  {label}
-                </DropdownMenuCheckboxItem>
-              ))}
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Columns</DropdownMenuLabel>
+                {TOGGLEABLE_COLUMNS.map(({ key, label }) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={visibleColumns.has(key)}
+                    onCheckedChange={() => toggleColumn(key)}
+                  >
+                    {label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button onClick={handleExport} variant="outline">
