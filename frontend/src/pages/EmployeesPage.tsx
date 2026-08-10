@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon, PencilIcon, TrashIcon, Columns3Icon, ListFilterIcon, SearchIcon, XIcon } from 'lucide-react'
+import {
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  Columns3Icon,
+  DownloadIcon,
+  ListFilterIcon,
+  SearchIcon,
+  XIcon,
+} from 'lucide-react'
 import {
   Pagination,
   PaginationContent,
@@ -47,6 +56,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { EmployeeForm, type EmployeeFormValues } from '@/components/forms/EmployeeForm'
 import { useAppData } from '@/hooks/useAppData'
 import { getPdf } from '@/storage/pdfStorage'
+import { exportEmployeesExcel } from '@/storage/exportEmployeesExcel'
 import { DOCUMENT_TYPES, type DocumentType, type Employee } from '@/types'
 import { cn } from '@/lib/utils'
 import {
@@ -106,6 +116,7 @@ export function EmployeesPage() {
     (contractorFilter !== 'all' ? 1 : 0) +
     (visaTypeFilter !== 'all' ? 1 : 0) +
     (workingRightFilter !== 'all' ? 1 : 0)
+  const hasActiveFilters = activeFilterCount > 0 || search.trim() !== ''
 
   const filteredEmployees = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -197,6 +208,16 @@ export function EmployeesPage() {
     toast.success('Employee deleted')
   }
 
+  async function handleExport() {
+    const rowsToExport = hasActiveFilters ? filteredEmployees : employees
+    if (rowsToExport.length === 0) {
+      toast.error('No employees to export')
+      return
+    }
+    await exportEmployeesExcel(rowsToExport, contractors, visibleColumns)
+    toast.success('Excel file downloaded')
+  }
+
   async function handleViewDocument(employee: Employee, docType: DocumentType) {
     const file = await getPdf(employee.id, docType)
     if (!file) {
@@ -235,6 +256,9 @@ export function EmployeesPage() {
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button onClick={handleExport} variant="outline">
+            <DownloadIcon /> Export to Excel
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <Button onClick={openCreate} disabled={contractors.length === 0}>
               <PlusIcon /> Add employee
@@ -368,7 +392,7 @@ export function EmployeesPage() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {(activeFilterCount > 0 || search.trim() !== '') && (
+        {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <XIcon /> Clear all
           </Button>
